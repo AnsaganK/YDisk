@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, reverse, get_object_or_404
 
 from app.forms import ResourceForm
 from app.models import Resource
-from app.service.yandex_disk import get_meta_data, get_items, download_item
+from app.service.yandex_disk import get_meta_data, get_items, get_download_url
 
 
 @login_required
@@ -55,9 +55,21 @@ def delete_resource(request, public_url):
 
 
 @login_required
-def download_resource_item(request, public_key, path):
-    url = f'https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key={public_key}?path={path}'
-    return redirect(url)
+def download_resource_item(request, public_url, path):
+    download_url = get_download_url(public_url, path)
+    return redirect(download_url) if download_url else redirect(reverse('app:home'))
+
+
+@login_required
+def update_resource_meta_data(request, public_url):
+    resource = get_object_or_404(Resource, user=request.user, public_url=public_url)
+    meta_data = get_meta_data(public_url)
+    resource.public_key = meta_data.get('public_ket')
+    resource.name = meta_data.get('name')
+    resource.owner = meta_data.get('owner', {}).get('display_name')
+    resource.save()
+    messages.success(request, f'Данные "{resource.name}" обновлены')
+    return redirect(reverse('app:resource_list'))
 
 
 @login_required

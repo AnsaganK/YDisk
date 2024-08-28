@@ -32,7 +32,8 @@
                     </div>
                     <div class="card-footer">
                         <div class="d-flex">
-                            <a href="{{ item.file }}" target="_blank" class="btn btn-success text-white w-100">
+                            <a href="{% url 'app:download_resource_item' resource.public_url item.path %}"
+                               target="_blank" class="btn btn-success text-white w-100">
                                 <i class="fa fa-download"></i>
                             </a>
                         </div>
