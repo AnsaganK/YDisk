@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {{ resource.name }}
+{% endblock %}
+
+{% block breadcrumb %}
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'app:home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'app:resource_list' %}">Диски</a></li>
+            <li class="breadcrumb-item active">{{ resource.name }}</li>
+        </ol>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        {% for item in items %}
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+                <div class="card text-center">
+                    <div class="card-header" style="text-overflow: ellipsis; overflow: hidden" title="{{ item.name }}">
+                        <span style="white-space: nowrap">{{ item.name }}</span>
+                    </div>
+                    <div class="card-body">
+                        {% if item.type == "dir" %}
+                            <img src="{% static 'app/images/folder.svg' %}" alt="" class="d-block m-auto" width="120px">
+                        {% elif item.type == "file" %}
+                            <img src="{% static 'app/images/file.svg' %}" alt="" class="d-block m-auto" width="120px">
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex">
+                            <a href="{{ item.file }}" target="_blank" class="btn btn-success text-white w-100">
+                                <i class="fa fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

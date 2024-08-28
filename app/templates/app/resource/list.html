@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    Диски
+{% endblock %}
+
+{% block breadcrumb %}
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'app:home' %}">Главная</a></li>
+            <li class="breadcrumb-item active">Диски</li>
+        </ol>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div class="modal fade" id="create_modal" tabindex="-1" style="display: none;" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{% url 'app:create_resource' %}" method="post">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title">Поиск</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex">
+                            <input type="text" class="form-control"
+                                   placeholder="Ссылка на Yandex Disk"
+                                   oninput="getResourceMetaData(this)">
+                            <button type="button" class="btn btn-secondary">
+                                <i class="fa fa-search text-white"></i>
+                            </button>
+                        </div>
+                        <div id="resourceMetaData" class="overflow w-100"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary text-white" id="resourceAddButton" disabled>
+                            Добавить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <span>
+            Всего: {{ resources.count }}
+        </span>
+        <a href="" class="btn btn-primary text-white"
+           style="width: 230px"
+           data-bs-toggle="modal"
+           data-bs-target="#create_modal">
+            <i class="fa fa-plus"></i> ДОБАВИТЬ
+        </a>
+    </div>
+    <hr>
+    <div class="row mt-3">
+        {% for resource in resources %}
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+                <div class="card">
+                    <div class="card-header">
+                        <img src="{% static 'app/images/YandexDisk.png' %}" alt="" width="120px" class="m-auto d-block">
+                    </div>
+                    <div class="card-body">
+                        <span class="text-black-50">Название:</span> {{ resource.name }} <br>
+                        <span class="text-black-50">Дата создания:</span> {{ resource.created_at|date:'d-m-Y' }} <br>
+                        <span class="text-black-50">Владелец:</span> {{ resource.owner }}
+                        <span class="text-black-50">Ссылка:</span> <a href="{{ resource.public_url }}" target="_blank">YandexDisk</a>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ resource.get_absolute_url }}" class="btn btn-sm btn-info w-100 me-1">
+                                <i class="fa fa-eye text-white"></i>
+                            </a>
+                            <a href="" class="btn btn-sm btn-warning w-100">
+                                <i class="fa fa-rotate text-white"></i>
+                            </a>
+                            <a href="{% url 'app:delete_resource' resource.public_url %}"
+                               class="btn btn-sm btn-danger w-100 ms-1">
+                                <i class="fa fa-trash text-white"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        async function getResourceMetaData(elem) {
+            let public_url = elem.value;
+            let resourceMetaData = document.getElementById('resourceMetaData')
+            let resourceAddButton = document.getElementById('resourceAddButton');
+
+            if (public_url === '') {
+                resourceMetaData.innerHTML = ''
+                return null
+            }
+            resourceAddButton.disabled = true;
+            resourceMetaData.innerHTML = `
+<div class="spinner-border text-info file_preloader_status" role="status" style="text-align: center;
+    display: block;
+    height: 80px !important;
+    width: 80px !important;
+    margin: 30px auto;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>`
+
+            let url = `/resource/${public_url}/meta-data`;
+            let response = await fetch(url);
+            if (response.ok) {
+                let data = await response.json();
+                if (Object.keys(data).length === 0) {
+                    resourceMetaData.innerHTML = '<span class="text-secondary w-100 text-center d-block mt-2">Диск не найден</span>'
+                } else {
+                    resourceMetaData.innerHTML = `
+                <div class="overflow-auto w-100 text-center">
+<table class="table table-bordered mt-3 w-100">
+<tr>
+<td colspan="2">
+<span class="text-primary w-100 text-center d-block mt-2"><i class="fa fa-check-circle me-2"></i>Данные найдены</span>
+</td>
+</tr>
+
+<tr>
+<td>Название</td>
+<td>${data["name"] ? data["name"] : '-'}</td>
+</tr>
+
+<tr>
+<td>Владелец</td>
+<td>${data["owner"] ? data["owner"] : '-'}</td>
+</tr>
+
+<tr>
+<td>Всего</td>
+<td>${data["total"] ? data["total"] : '-'}</td>
+</tr>
+</table>
+<input type="text" class="d-none" name="name" value="${data["name"] ? data["name"] : '-'}">
+<input type="text" class="d-none" name="owner" value="${data["owner"] ? data["owner"] : '-'}">
+<input type="text" class="d-none" name="total" value="${data["total"] ? data["total"] : '-'}">
+<input type="text" class="d-none" name="public_key" value="${data["public_key"] ? data["public_key"] : '-'}">
+<input type="text" class="d-none" name="public_url" value="${data["public_url"] ? data["public_url"] : '-'}">
+<input type="text" class="d-none" name="yd_created_at" value="${data["yd_created_at"] ? data["yd_created_at"] : '-'}">
+                </div>
+                `;
+                }
+                let is_found = data["is_found"];
+                resourceAddButton.disabled = is_found !== true;
+            } else {
+                resourceMetaData.innerHTML = `<span class="text-danger w-100 text-center d-block mt-2">Ошибка</span>`
+                console.log(response.status);
+            }
+        }
+    </script>
+{% endblock %}
